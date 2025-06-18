@@ -1,52 +1,48 @@
-
 from flask import Flask, request
-import requests
 import os
+import requests
 
 app = Flask(__name__)
-TOKEN = os.getenv("TELEGRAM_TOKEN")
-CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")  # Optional static chat ID for testing
 
-def send_telegram_message(message, chat_id=None):
-    chat_id = chat_id or CHAT_ID
+# Get secrets from Render environment
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+DEFAULT_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")  # Optional for now
+
+# Send Telegram message
+def send_message(text, chat_id=None):
     if not chat_id:
-        return "Chat ID missing"
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {"chat_id": chat_id, "text": message}
-    return requests.post(url, json=payload).text
+        chat_id = DEFAULT_CHAT_ID
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": text
+    }
+    response = requests.post(url, data=payload)
+    return response.json()
 
-@app.route("/webhook", methods=["POST"])
-def webhook():
+# Home route (Render health check)
+@app.route('/')
+def home():
+    return "✅ Big Tony Sniper Bot is running."
+
+# Alert webhook (from TradingView or custom system)
+@app.route('/alert', methods=['POST'])
+def alert():
     data = request.json
-    pair = data.get("pair", "Unknown")
-    signal = data.get("signal", "No signal info")
-    tf = data.get("timeframe", "Unknown")
-   msg = f"""📡 Signal Detected:
+
+    pair = data.get("pair", "Unknown Pair")
+    signal = data.get("signal", "No Signal")
+    tf = data.get("timeframe", "Unknown TF")
+    extra = data.get("note", "")
+
+    message = f"""📡 SMC Alert Detected:
 Pair: {pair}
 Signal: {signal}
-Timeframe: {tf}"""
-Pair: {pair}
-Signal: {signal}
-Timeframe: {tf}"
-    return send_telegram_message(msg)
+Timeframe: {tf}
+{extra}"""
 
-@app.route("/daily_summary", methods=["GET"])
-def daily_summary():
-    message = (
-        "🧠 *Daily Sniper Summary*
-"
-        "📊 Bias: [Auto-generated bias]
-"
-        "💥 Watchlist: BTCUSD, GBPJPY, XAUUSD
-"
-        "📵 News Risk: Medium
-"
-        "🎯 Discipline: Max 3 trades today. +5% Target.
-"
-        "🙏 Stay focused. Let God guide every setup."
-    )
-    return send_telegram_message(message)
+    send_message(message)
+    return "✅ Alert received and sent."
 
-@app.route("/")
-def index():
-    return "Big Tony FX Sniper Bot is live."
+if __name__ == '__main__':
+    app.run(debug=True)
