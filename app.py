@@ -21,7 +21,10 @@ def webhook():
     pair = data.get("pair", "Unknown")
     signal = data.get("signal", "No signal info")
     tf = data.get("timeframe", "Unknown")
-    msg = f"📡 Signal Detected:
+   msg = f"""📡 Signal Detected:
+Pair: {pair}
+Signal: {signal}
+Timeframe: {tf}"""
 Pair: {pair}
 Signal: {signal}
 Timeframe: {tf}"
